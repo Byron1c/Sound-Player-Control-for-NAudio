@@ -30,15 +30,16 @@
         {
             this.components = new System.ComponentModel.Container();
             this.flowLayoutPanel1 = new System.Windows.Forms.FlowLayoutPanel();
-            this.Title = new System.Windows.Forms.Label();
+            this.txtTitle = new System.Windows.Forms.Label();
             this.txtSoundFilename = new System.Windows.Forms.TextBox();
             this.btnLoadSound = new System.Windows.Forms.Button();
             this.btnPlaySound = new System.Windows.Forms.Button();
             this.btnStopSound = new System.Windows.Forms.Button();
             this.cbOutputDevice = new System.Windows.Forms.ComboBox();
             this.numVolume = new System.Windows.Forms.NumericUpDown();
-            this.btnClearSound = new System.Windows.Forms.Button();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
+            this.panelDisable = new Strangetimez.Objects.ExtendedPanel();
+            this.btnClearSound = new System.Windows.Forms.Button();
             this.flowLayoutPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numVolume)).BeginInit();
             this.SuspendLayout();
@@ -47,7 +48,7 @@
             // 
             this.flowLayoutPanel1.AutoSize = true;
             this.flowLayoutPanel1.BackColor = System.Drawing.Color.Transparent;
-            this.flowLayoutPanel1.Controls.Add(this.Title);
+            this.flowLayoutPanel1.Controls.Add(this.txtTitle);
             this.flowLayoutPanel1.Controls.Add(this.txtSoundFilename);
             this.flowLayoutPanel1.Controls.Add(this.btnLoadSound);
             this.flowLayoutPanel1.Controls.Add(this.btnPlaySound);
@@ -59,18 +60,19 @@
             this.flowLayoutPanel1.Margin = new System.Windows.Forms.Padding(2);
             this.flowLayoutPanel1.Name = "flowLayoutPanel1";
             this.flowLayoutPanel1.Padding = new System.Windows.Forms.Padding(1);
-            this.flowLayoutPanel1.Size = new System.Drawing.Size(605, 24);
+            this.flowLayoutPanel1.Size = new System.Drawing.Size(597, 24);
             this.flowLayoutPanel1.TabIndex = 42;
+            this.flowLayoutPanel1.WrapContents = false;
             // 
-            // Title
+            // txtTitle
             // 
-            this.Title.Location = new System.Drawing.Point(2, 1);
-            this.Title.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
-            this.Title.Name = "Title";
-            this.Title.Size = new System.Drawing.Size(91, 21);
-            this.Title.TabIndex = 34;
-            this.Title.Text = "Title";
-            this.Title.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.txtTitle.Location = new System.Drawing.Point(2, 1);
+            this.txtTitle.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
+            this.txtTitle.Name = "txtTitle";
+            this.txtTitle.Size = new System.Drawing.Size(91, 21);
+            this.txtTitle.TabIndex = 34;
+            this.txtTitle.Text = "Title";
+            this.txtTitle.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
             // txtSoundFilename
             // 
@@ -160,6 +162,15 @@
             0});
             this.numVolume.ValueChanged += new System.EventHandler(this.numVolume_ValueChanged);
             // 
+            // panelDisable
+            // 
+            this.panelDisable.BackColor = System.Drawing.SystemColors.Control;
+            this.panelDisable.Location = new System.Drawing.Point(4, 4);
+            this.panelDisable.Name = "panelDisable";
+            this.panelDisable.Size = new System.Drawing.Size(610, 24);
+            this.panelDisable.TabIndex = 46;
+            this.panelDisable.Visible = false;
+            // 
             // btnClearSound
             // 
             this.btnClearSound.BackColor = System.Drawing.Color.White;
@@ -171,7 +182,7 @@
             this.btnClearSound.Location = new System.Drawing.Point(565, 1);
             this.btnClearSound.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
             this.btnClearSound.Name = "btnClearSound";
-            this.btnClearSound.Size = new System.Drawing.Size(35, 19);
+            this.btnClearSound.Size = new System.Drawing.Size(30, 20);
             this.btnClearSound.TabIndex = 41;
             this.btnClearSound.UseVisualStyleBackColor = true;
             this.btnClearSound.Click += new System.EventHandler(this.btnClearSound_Click);
@@ -182,9 +193,10 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.Control;
             this.Controls.Add(this.flowLayoutPanel1);
+            this.Controls.Add(this.panelDisable);
             this.Margin = new System.Windows.Forms.Padding(0);
             this.Name = "SoundPlayer";
-            this.Size = new System.Drawing.Size(607, 24);
+            this.Size = new System.Drawing.Size(610, 24);
             this.flowLayoutPanel1.ResumeLayout(false);
             this.flowLayoutPanel1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numVolume)).EndInit();
@@ -198,11 +210,12 @@
         private System.Windows.Forms.Button btnStopSound;
         private System.Windows.Forms.ComboBox cbOutputDevice;
         private System.Windows.Forms.NumericUpDown numVolume;
-        private System.Windows.Forms.Button btnClearSound;
-        public System.Windows.Forms.Label Title;
         private System.Windows.Forms.ToolTip toolTip1;
-        public System.Windows.Forms.FlowLayoutPanel flowLayoutPanel1;
         private System.Windows.Forms.Button btnLoadSound;
         private System.Windows.Forms.Button btnPlaySound;
+        private System.Windows.Forms.FlowLayoutPanel flowLayoutPanel1;
+        private System.Windows.Forms.Label txtTitle;
+        private Objects.ExtendedPanel panelDisable;
+        private System.Windows.Forms.Button btnClearSound;
     }
 }

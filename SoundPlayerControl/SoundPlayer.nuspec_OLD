@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <title>$title$</title>
+    <authors>$author$</authors>
+    <owners>$author$</owners>
+    <licenseUrl>https://github.com/Byron1c/Sound-Player-Control-for-NAudio/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/Byron1c/Sound-Player-Control-for-NAudio</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>$description$</description>
+    <releaseNotes>Added proper enabled/disabled display change (make it clear to users)</releaseNotes>
+    <copyright>Copyright 2019</copyright>
+    <tags>NAudio Sound Control</tags>
+  </metadata>
+</package>

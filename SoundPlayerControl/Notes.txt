@@ -1,0 +1,30 @@
+﻿NuGET Documentation:
+https://docs.microsoft.com/en-us/nuget/create-packages/creating-a-package
+
+NuGet.exe pack SoundPlayer.csproj -Verbosity detailed -Properties Configuration=Release
+
+This control can be used by dragging and dropping it onto a form, or programattically.
+Uses Dot NET 4.8
+
+
+A very simple example
+(Check the test code in GitHub for more examples)
+
+
+SoundPlayer sp;
+
+private void btnPlaySound_Click(object sender, EventArgs e)
+{
+	...
+	sp = new SoundPlayer(@"C:\Windows\Media\Alarm01.wav", 95);
+	sp.PlaybackStopped += SoundPlayer_PlaybackStopped;
+	sp.PlaySound();
+	...
+}
+
+
+private void SoundPlayer_PlaybackStopped(object sender, NAudio.Wave.StoppedEventArgs e)
+{
+	MessageBox.Show("Programmatic sound has finished playing");
+	sp.Dispose();
+}

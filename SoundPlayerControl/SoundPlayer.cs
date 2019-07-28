@@ -130,6 +130,48 @@ namespace Strangetimez
         }
 
 
+        private String title;
+        public String Title
+        {
+            get { return title; }
+            set
+            {
+                title = value;
+                txtTitle.Text  = value;
+            }
+        }
+
+
+        private Boolean showTitle;
+        public Boolean ShowTitle
+        {
+            get { return showTitle; }
+            set
+            {
+                showTitle = value;
+                txtTitle.Visible = value;
+                SetControlWidth();
+            }
+        }
+
+
+        private Color disabledColour;
+        public Color DisabledColour
+        {
+            get { return disabledColour; }
+            set
+            {
+                disabledColour = value;
+                panelDisable.BackColor = value;
+            }
+        }
+
+
+
+
+
+
+        public event EventHandler<FileDetectEventArgs> FileChangeDetected;
 
 
         internal List<EventHandler<StoppedEventArgs>> PlaybackStoppedEventHandlers; 
@@ -171,7 +213,7 @@ namespace Strangetimez
         }
 
 
-        public SoundPlayer(String vFilename, int vVolume, Boolean vShowDeviceList, Boolean vShowVolume, Boolean vShowClearButton, Boolean vShowFilename)
+        public SoundPlayer(String vFilename, int vVolume, Boolean vShowDeviceList = true, Boolean vShowVolume = true, Boolean vShowClearButton = true, Boolean vShowFilename = true, Boolean vShowTitle = true)
         {
             InitializeComponent();
 
@@ -183,9 +225,11 @@ namespace Strangetimez
             ShowVolume = vShowVolume;
             ShowClearButton = vShowClearButton;
             ShowFilename = vShowFilename;
+            ShowTitle = vShowTitle;
 
             SetControlWidth();
         }
+
 
 
         private void Initialise()
@@ -199,17 +243,24 @@ namespace Strangetimez
             ShowClearButton = true;
             ShowVolume = true;
             ShowFilename = true;
+            ShowTitle = true;
+            DisabledColour = SystemColors.Control;
+
+            Title = "Sound Player";
 
             PlaybackStoppedEventHandlers = new List<EventHandler<StoppedEventArgs>>();
 
+            panelDisable.Visible = false;
+            panelDisable.Location = new Point(0, 0);
+            panelDisable.BringToFront();
             //SetSoundDeviceList();
             //setSoundButtons();
 
             soundPlaying = new WaveOutExt();
-            if (cbOutputDevice.Items.Count > 0) SoundDeviceName = cbOutputDevice.SelectedItem.ToString();
 
             numVolume.KeyUp += NumVolume_KeyUp;
             this.Disposed += OnDispose;
+            this.EnabledChanged += SoundPlayer_EnabledChanged;
 
             //Sound Event stuff
             notificationClient = new NotificationClientImplementation(this);
@@ -222,16 +273,45 @@ namespace Strangetimez
 
             SetSoundDeviceList();
             setSoundButtons();
+            SetEnabled();
+
+            if (cbOutputDevice.Items.Count > 0) SoundDeviceName = cbOutputDevice.SelectedItem.ToString();
 
             ApplyingSettings = false;
+
         }
 
+        private void SoundPlayer_EnabledChanged(object sender, EventArgs e)
+        {
+            SetEnabled();
+        }
+
+        private void SetEnabled()
+        {
+            //flowLayoutPanel1.Enabled = this.Enabled;
+            setSoundControlsAllEnabled(this.Enabled);
+            panelDisable.Visible = !this.Enabled;
+
+            //stupid controls - cant get the clear button (or any button as last in the flow layout) to go BEHIND the panel, so Ill hide it
+            if (showClearButton) btnClearSound.Visible = this.Enabled;
+        }
+
+        // Note the naming
+        public void OnNewFileDetect(FileDetectEventArgs e)
+        {
+            // Note this pattern for thread safety...
+            EventHandler<FileDetectEventArgs> handler = this.FileChangeDetected;
+            if (handler != null)
+            {
+                handler(this, e);
+            }
+        }
 
 
         private void SetControlWidth()
         {
             int width = 0;
-            if (Title.Visible) width += Title.Width + padding;
+            if (txtTitle.Visible) width += txtTitle.Width + padding;
             if (txtSoundFilename.Visible) width += txtSoundFilename.Width + padding;
             if (btnLoadSound.Visible) width += btnLoadSound.Width + padding;
             if (btnPlaySound.Visible) width += btnPlaySound.Width + padding;
@@ -262,6 +342,8 @@ namespace Strangetimez
                 numVolume.Enabled = true;
             } else
             {
+                // raise event for filename change
+                OnNewFileDetect(new FileDetectEventArgs(Filename));
                 setToolTips();
             }
 
@@ -370,6 +452,8 @@ namespace Strangetimez
         {
             int output = 0; // default to the first item
 
+            if (String.IsNullOrEmpty(vName)) return 0; // 0 or -1 is "default" 
+
             int waveOutDevices = WaveOut.DeviceCount;
             for (int waveOutDevice = 0; waveOutDevice < waveOutDevices; waveOutDevice++)
             {
@@ -386,6 +470,29 @@ namespace Strangetimez
 
             return output;
         }
+
+        public void SetSoundDeviceByName(String vName)
+        {
+            SoundDeviceName = vName;
+    
+        }
+        public void SetSoundDeviceByID(int vDeviceID)
+        {
+            int waveOutDevices = WaveOut.DeviceCount;
+            for (int waveOutDevice = 0; waveOutDevice < waveOutDevices; waveOutDevice++)
+            {
+                WaveOutCapabilities deviceInfo = WaveOut.GetCapabilities(waveOutDevice);
+
+                if (waveOutDevice == vDeviceID)
+                {
+                    SetSoundDeviceByName(deviceInfo.ProductName);
+                    break;
+                }
+
+            }
+        }
+
+
 
         private void playSound(String vFile, int vDeviceID, int vVolume) //File: settings.CurrentSettings.SoundBreakWarning
         {
@@ -517,23 +624,35 @@ namespace Strangetimez
         /// </summary>
         private void setSoundButtons()
         {
-            btnPlaySound.Enabled = true;
-
-            if (String.IsNullOrEmpty(Filename))
+            if (this.Enabled)
             {
-                btnPlaySound.Enabled = false;
-                btnStopSound.Enabled = false;
-                btnLoadSound.Select();
+
+                btnPlaySound.Enabled = true;
+
+                if (String.IsNullOrEmpty(Filename))
+                {
+                    btnPlaySound.Enabled = false;
+                    btnStopSound.Enabled = false;
+                    btnLoadSound.Select();
+                }
+                else
+                {
+                    btnPlaySound.Enabled = true;
+                    btnStopSound.Enabled = false;
+                    btnPlaySound.Select();
+                }
+
+                
             }
             else
             {
-                btnPlaySound.Enabled = true;
+                btnPlaySound.Enabled = false;
                 btnStopSound.Enabled = false;
-                btnPlaySound.Select();
+                btnLoadSound.Enabled = false;
             }
 
             setButtonsImages(ref btnPlaySound, ref btnStopSound);
-            
+
         }
 
 
@@ -546,7 +665,7 @@ namespace Strangetimez
         {
             //vStopButton.Enabled = false;
             //vStopButton.Enabled = (vPath == string.Empty);
-            if (vStopButton.Enabled == false)
+            if (vStopButton.Enabled == false || !this.Enabled)
             {
                 vStopButton.BackgroundImage = (Image)new Bitmap(Properties.Resources.Stop_red_icon_small_Disabled);
             }
@@ -556,7 +675,7 @@ namespace Strangetimez
             }
 
             //vPlayButton.Enabled = false;
-            if (vPlayButton.Enabled == false)
+            if (vPlayButton.Enabled == false || !this.Enabled)
             {
                 vPlayButton.BackgroundImage = (Image)new Bitmap(Properties.Resources.Play_1_Hot_icon_small_Disabled);
             }
@@ -574,6 +693,7 @@ namespace Strangetimez
         private void setSoundFilenames()
         {
             txtSoundFilename.Text = Filename;
+            txtSoundFilename.Enabled = this.Enabled;
         }
 
 
