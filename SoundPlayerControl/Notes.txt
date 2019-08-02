@@ -6,8 +6,18 @@ NuGet.exe pack SoundPlayer.csproj -Verbosity detailed -Properties Configuration=
 This control can be used by dragging and dropping it onto a form, or programattically.
 Uses Dot NET 4.8
 
+Features:
+* Uses NAudio
+* Output sound to a selected sound device (not just the default)
+* Detects changes to audio outputs
+* Events to capture when playback and recording is stopped, and others
+* Hide / show controls on the player to suit your needs
+* Basic audio recording to a wav file
+* Drag and drop the control onto a form, and its ready to go for loading and playing a sound, and recording (no code required)
+* and more!
 
-A very simple example
+
+A very simple code based example
 (Check the test code in GitHub for more examples)
 
 
@@ -28,3 +38,18 @@ private void SoundPlayer_PlaybackStopped(object sender, NAudio.Wave.StoppedEvent
 	MessageBox.Show("Programmatic sound has finished playing");
 	sp.Dispose();
 }
+
+
+
+Changes
+0.9.0.5
+* Improved tooltips - shows filename and play time
+* Events added for changing the volume, and changing the device
+* Added list of current devices - recording, and playback
+* Added basic record function
+* Event added for recording finished
+* Disable load button on playing sound
+* Message appears when recording
+* Improved appearance of browse icon
+* Error with volume level fixed (not going to full volume)
+* Added properties for customising the width of the title, device list and the filename

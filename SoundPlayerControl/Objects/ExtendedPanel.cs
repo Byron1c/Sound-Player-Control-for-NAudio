@@ -31,6 +31,7 @@ namespace Strangetimez.Objects
                 this.opacity = value;
             }
         }
+
         protected override CreateParams CreateParams
         {
             get
@@ -40,6 +41,7 @@ namespace Strangetimez.Objects
                 return cp;
             }
         }
+
         protected override void OnPaint(PaintEventArgs e)
         {
             using (var brush = new SolidBrush(Color.FromArgb(this.opacity * 255 / 100, this.BackColor)))

@@ -48,6 +48,9 @@
     <Compile Include="Objects\ExtendedPanel.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Objects\DeviceDetectEventArgs.cs" />
+    <Compile Include="Objects\RecordDetectEventArgs.cs" />
+    <Compile Include="Objects\VolumeDetectEventArgs.cs" />
     <Compile Include="Objects\FileDetectEventArgs.cs" />
     <Compile Include="Objects\NotificationClientImplementation.cs" />
     <Compile Include="Objects\WaveOutExt.cs" />

@@ -10,7 +10,18 @@
     <projectUrl>https://github.com/Byron1c/Sound-Player-Control-for-NAudio</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description$</description>
-    <releaseNotes>Summary of changes made in this release of the package.</releaseNotes>
+    <releaseNotes>
+* Improved tooltips - shows filename and play time
+* Events added for changing the volume, and changing the device
+* Added list of current devices - recording, and playback
+* Added basic record function
+* Event added for recording finished
+* Disable load button on playing sound
+* Message appears when recording
+* Improved appearance of browse icon
+* Error with volume level fixed (not going to full volume)
+* Added properties for customising the width of the title, device list and the filename
+    </releaseNotes>
     <copyright>Copyright 2019</copyright>
     <tags>NAudio Sound Control</tags>
   </metadata>

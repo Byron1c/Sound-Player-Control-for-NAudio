@@ -1,25 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Drawing;
-using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-using System.ComponentModel.Design;
-using Strangetimez.Objects;
-using NAudio.Wave;
-using System.Runtime.InteropServices;
+﻿using Microsoft.Win32;
 using NAudio.CoreAudioApi.Interfaces;
-using NAudio.CoreAudioApi;
-using Microsoft.Win32;
+using NAudio.Wave;
+using Strangetimez.Objects;
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
+
+
 
 namespace Strangetimez
 {
 
     public partial class SoundPlayer: UserControl
     {
+
+        public enum SoundControlState
+        {
+            None,
+            Playing,
+            Recording,
+            
+        }
+
 
         /// <summary>
         /// Registers a call back for Device Events
@@ -155,6 +159,19 @@ namespace Strangetimez
         }
 
 
+        private Boolean showRecord;
+        public Boolean ShowRecord
+        {
+            get { return showTitle; }
+            set
+            {
+                showRecord = value;
+                btnRecord.Visible = value;
+                SetControlWidth();
+            }
+        }
+
+
         private Color disabledColour;
         public Color DisabledColour
         {
@@ -167,27 +184,118 @@ namespace Strangetimez
         }
 
 
+        private SoundControlState state;
+        public SoundControlState State
+        {
+            get { return state; }
+            set
+            {
+                state = value;
+            }
+        }
+
+
+        private String recordingFilename;
+        public String RecordingFilename
+        {
+            get { return recordingFilename; }
+            set
+            {
+                recordingFilename = value;
+                if (!String.IsNullOrEmpty(recordingFilename))
+                {
+                    // enable recording?
+                }
+                else
+                {
+                    // disable recording?
+                }
+            }
+        }
+
+
+        private int recordingDeviceID;
+        public int RecordingDeviceID
+        {
+            get { return recordingDeviceID; }
+            set
+            {
+                recordingDeviceID = value;
+                SetRecordingDevice(value);
+            }
+        }
+
+
+        public int DeviceListWidth
+        {
+            get { return cbOutputDevice.Width; }
+            set
+            {
+                cbOutputDevice.Width = value;
+                SetControlWidth();
+            }
+        }
+
+
+        public int FilenameWidth
+        {
+            get { return txtSoundFilename.Width; }
+            set
+            {
+                txtSoundFilename.Width = value;
+                SetControlWidth();
+            }
+        }
+
+
+        public int TitleWidth
+        {
+            get { return txtTitle.Width; }
+            set
+            {
+                txtTitle.Width = value;
+                SetControlWidth();
+            }
+        }
 
 
 
 
-        public event EventHandler<FileDetectEventArgs> FileChangeDetected;
-
-
-        internal List<EventHandler<StoppedEventArgs>> PlaybackStoppedEventHandlers; 
+        // Playback Stopped event handling
+        internal List<EventHandler<StoppedEventArgs>> PlaybackStoppedEventHandlers;
         public event EventHandler<StoppedEventArgs> PlaybackStopped
         {
-            add { soundPlaying.WaveOutput.PlaybackStopped += value;
+            add
+            {
+                soundPlaying.WaveOutput.PlaybackStopped += value;
                 PlaybackStoppedEventHandlers.Add(value);
             }
-            remove { soundPlaying.WaveOutput.PlaybackStopped -= value;
+            remove
+            {
+                soundPlaying.WaveOutput.PlaybackStopped -= value;
                 PlaybackStoppedEventHandlers.Remove(value);
             }
         }
 
 
+        // Other event handlers
+        public event EventHandler<FileDetectEventArgs> FileChanged;
+        public event EventHandler<VolumeDetectEventArgs> VolumeChanged;
+        public event EventHandler<DeviceDetectEventArgs> DeviceChanged;
+        public event EventHandler<RecordDetectEventArgs> RecordingStopped;
+
+
+
+        public const String recordingTempFilename = "SoundPlayerRecording";
         private const int padding = 2;
+
         private System.Timers.Timer tmrDeviceUpdate;
+        private System.Timers.Timer tmrRecording;
+        private int recordingTimeSeconds = 0;
+
+        /// <summary>
+        /// Used to indicate when the form is working on itsself
+        /// </summary>
         private Boolean ApplyingSettings = false;
 
         /// <summary>
@@ -202,6 +310,9 @@ namespace Strangetimez
         private Mp3FileReader mp3FileReader;
         private WaveFileReader wavFileReader;
 
+        // recording
+        private WaveIn waveSource = null;
+        private WaveFileWriter waveFile = null;
 
 
 
@@ -244,19 +355,18 @@ namespace Strangetimez
             ShowVolume = true;
             ShowFilename = true;
             ShowTitle = true;
+            ShowRecord = true;
             DisabledColour = SystemColors.Control;
+            State = SoundControlState.None;
+            RecordingFilename = string.Empty;
+            RecordingDeviceID = 0; // 0 = default
 
             Title = "Sound Player";
 
             PlaybackStoppedEventHandlers = new List<EventHandler<StoppedEventArgs>>();
 
-            panelDisable.Visible = false;
-            panelDisable.Location = new Point(0, 0);
-            panelDisable.BringToFront();
-            //SetSoundDeviceList();
-            //setSoundButtons();
-
             soundPlaying = new WaveOutExt();
+            waveSource = new WaveIn();
 
             numVolume.KeyUp += NumVolume_KeyUp;
             this.Disposed += OnDispose;
@@ -267,18 +377,31 @@ namespace Strangetimez
             notifyClient = (NAudio.CoreAudioApi.Interfaces.IMMNotificationClient)notificationClient;
             deviceEnum.RegisterEndpointNotificationCallback(notifyClient);
 
+            //Timer that fires when devices change
             tmrDeviceUpdate = new System.Timers.Timer();
             tmrDeviceUpdate.Interval = 2000;
             tmrDeviceUpdate.Elapsed += TmrDeviceUpdate_Tick;
+
+            tmrRecording = new System.Timers.Timer();
+            tmrRecording.Interval = 1000;
+            tmrRecording.Elapsed += TmrDeviceUpdate_Elapsed;
+            recordingTimeSeconds = 0;
 
             SetSoundDeviceList();
             setSoundButtons();
             SetEnabled();
 
-            if (cbOutputDevice.Items.Count > 0) SoundDeviceName = cbOutputDevice.SelectedItem.ToString();
+            // set the device to be the first listed device, if its not already set
+            if (cbOutputDevice.Items.Count > 0 && String.IsNullOrEmpty(SoundDeviceName)) SoundDeviceName = cbOutputDevice.SelectedItem.ToString();
 
             ApplyingSettings = false;
 
+        }
+
+        private void TmrDeviceUpdate_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            recordingTimeSeconds++;
+            setRecordingText();
         }
 
         private void SoundPlayer_EnabledChanged(object sender, EventArgs e)
@@ -288,25 +411,63 @@ namespace Strangetimez
 
         private void SetEnabled()
         {
+            panelDisable.Location = new Point(0, 0);
+            panelDisable.BringToFront();
+            flowLayoutPanel1.SendToBack();
+
             //flowLayoutPanel1.Enabled = this.Enabled;
             setSoundControlsAllEnabled(this.Enabled);
-            panelDisable.Visible = !this.Enabled;
+            panelDisable.Visible = !this.Enabled;            
+
+            setSoundButtons();
 
             //stupid controls - cant get the clear button (or any button as last in the flow layout) to go BEHIND the panel, so Ill hide it
-            if (showClearButton) btnClearSound.Visible = this.Enabled;
+            //if (showClearButton) btnClearSound.Visible = this.Enabled;
         }
 
         // Note the naming
         public void OnNewFileDetect(FileDetectEventArgs e)
         {
             // Note this pattern for thread safety...
-            EventHandler<FileDetectEventArgs> handler = this.FileChangeDetected;
+            EventHandler<FileDetectEventArgs> handler = this.FileChanged;
             if (handler != null)
             {
                 handler(this, e);
             }
         }
 
+        // Note the naming
+        public void OnVolumeChangeDetect(VolumeDetectEventArgs e)
+        {
+            // Note this pattern for thread safety...
+            EventHandler<VolumeDetectEventArgs> handler = this.VolumeChanged;
+            if (handler != null)
+            {
+                handler(this, e);
+            }
+        }
+
+        // Note the naming
+        public void OnDeviceChangeDetect(DeviceDetectEventArgs e)
+        {
+            // Note this pattern for thread safety...
+            EventHandler<DeviceDetectEventArgs> handler = this.DeviceChanged;
+            if (handler != null)
+            {
+                handler(this, e);
+            }
+        }
+
+        public void OnRecordingStoppedDetect(RecordDetectEventArgs e)
+        {
+            // Note this pattern for thread safety...
+            EventHandler<RecordDetectEventArgs> handler = this.RecordingStopped;
+            if (handler != null)
+            {
+                handler(this, e);
+            }
+        }
+        
 
         private void SetControlWidth()
         {
@@ -319,6 +480,7 @@ namespace Strangetimez
             if (numVolume.Visible) width += numVolume.Width + padding;
             if (cbOutputDevice.Visible) width += cbOutputDevice.Width + padding;
             if (btnClearSound.Visible) width += btnClearSound.Width + padding;
+            if (btnRecord.Visible) width += btnRecord.Width + padding;
             this.Width = width + (padding * 2); // extra padding for the flowlayout
         }
 
@@ -353,34 +515,56 @@ namespace Strangetimez
 
         private void setToolTips()
         {
-            //int seconds = GetPlayTimeSeconds();
-            //TimeSpan t = TimeSpan.FromSeconds(seconds);
+            string formattedTime = GetTimeFormatted(GetPlayTimeSeconds());
 
-            //string formattedTime = string.Format("{0:D2}h:{1:D2}m:{2:D2}s", //:{3:D3}ms",
-            //                t.Hours,
-            //                t.Minutes,
-            //                t.Seconds);
-            ////t.Milliseconds);
-            string formattedTime = GetPlayTimeFormatted();
+            if (!string.IsNullOrEmpty(formattedTime))
+            {
+                toolTip1.SetToolTip(btnPlaySound, String.Format(Filename + "\nPlay Time: " + formattedTime));
+                toolTip1.SetToolTip(txtSoundFilename, String.Format(Filename + "\nPlay Time: " + formattedTime));
+                toolTip1.SetToolTip(btnStopSound, String.Format(Filename + "\nPlay Time: " + formattedTime));
+            }
+            else
+            {
+                toolTip1.SetToolTip(btnPlaySound, String.Empty);
+                toolTip1.SetToolTip(txtSoundFilename, String.Empty);
+                toolTip1.SetToolTip(btnStopSound, String.Empty);
+            }
 
-            toolTip1.SetToolTip(btnPlaySound, String.Format("Play Time: " + formattedTime));
-            toolTip1.SetToolTip(txtSoundFilename, String.Format("Play Time: " + formattedTime));
-            toolTip1.SetToolTip(btnStopSound, String.Format("Play Time: " + formattedTime));
+            toolTip1.SetToolTip(btnRecord, RecordingFilename);
         }
+
 
         public string GetPlayTimeFormatted()
         {
-            int seconds = GetPlayTimeSeconds();
-            TimeSpan t = TimeSpan.FromSeconds(seconds);
-
-            string formattedTime = string.Format("{0:D2}h:{1:D2}m:{2:D2}s", //:{3:D3}ms",
-                            t.Hours,
-                            t.Minutes,
-                            t.Seconds);
-
-            return formattedTime;
+            return GetTimeFormatted(GetPlayTimeSeconds());
         }
 
+
+        private string GetTimeFormatted(int vSeconds)
+        {
+            int seconds = vSeconds; 
+            if (seconds > -1)
+            {
+                TimeSpan t = TimeSpan.FromSeconds(seconds);
+
+                string formattedTime = string.Format("{0:D2}h:{1:D2}m:{2:D2}s", //:{3:D3}ms",
+                                t.Hours,
+                                t.Minutes,
+                                t.Seconds);
+
+                return formattedTime;
+            }
+
+            return string.Empty;
+            
+        }
+
+
+        /// <summary>
+        /// Returns the number of seconds that the sound file plays for
+        /// </summary>
+        /// <returns>returns a positive value for the number of seconds. 
+        /// returns -1 when no file found or specified</returns>
         public int GetPlayTimeSeconds()
         {
             return getPlayTimeSeconds(Filename);
@@ -412,17 +596,19 @@ namespace Strangetimez
 
         private void btnPlaySound_Click(object sender, EventArgs e)
         {
-            PlaySound();
+            Play();
         }
 
-        public void PlaySound()
+        public void Play()
         {
-            disablePlayButtons();
+            //disableButtonsOnPlay();
+            State = SoundControlState.Playing;
+            setButtonsOnPlay(ref btnPlaySound, ref btnStopSound, ref btnLoadSound, ref btnRecord);
             playSound(Filename, getSoundDeviceIDByName(SoundDeviceName), Volume);
-            setButtonsOnPlay(ref btnPlaySound, ref btnStopSound, ref btnLoadSound);
+            
         }
 
-        private void setButtonsOnPlay(ref Button vPlayButton, ref Button vStopButton, ref Button vBrowseButton)
+        private void setButtonsOnPlay(ref Button vPlayButton, ref Button vStopButton, ref Button vBrowseButton, ref Button vRecordButton)
         {
             vStopButton.Enabled = true;
             vStopButton.BackgroundImage = (Image)new Bitmap(Properties.Resources.Stop_red_icon_small);
@@ -431,16 +617,20 @@ namespace Strangetimez
             vPlayButton.BackgroundImage = (Image)new Bitmap(Properties.Resources.Play_1_Hot_icon_small_Disabled);
 
             vBrowseButton.Enabled = false;
-        }
+            vBrowseButton.BackgroundImage = (Image)new Bitmap(Properties.Resources.browse_icon_Disabled);
 
-
-
-        private void disablePlayButtons()
-        {
-            btnPlaySound.Enabled = false;
-            btnPlaySound.BackgroundImage = (Image)new Bitmap(Properties.Resources.Play_1_Hot_icon_small_Disabled);
+            vRecordButton.Enabled = false;
+            vRecordButton.BackgroundImage = (Image)new Bitmap(Properties.Resources.record_small_Disabled);
 
         }
+
+
+
+        //private void disableButtonsOnPlay()
+        //{
+        //    btnPlaySound.Enabled = false;
+        //    btnPlaySound.BackgroundImage = (Image)new Bitmap(Properties.Resources.Play_1_Hot_icon_small_Disabled);
+        //}
 
 
         /// <summary>
@@ -526,7 +716,7 @@ namespace Strangetimez
 
                 soundPlaying.WaveOutput.DeviceNumber = vDeviceID; //settings.CurrentSettings.SoundBreakWarningDeviceID;
                 soundPlaying.WaveOutput.PlaybackStopped += WaveOut_PlaybackStopped;
-                soundPlaying.WaveOutput.Volume = (float)(vVolume / 150.0f);
+                soundPlaying.WaveOutput.Volume = (float)(vVolume / 100.0f);
 
 
 
@@ -560,22 +750,14 @@ namespace Strangetimez
 
         private void WaveOut_PlaybackStopped(object sender, StoppedEventArgs e)
         {
-            //WaveOut r = ((WaveOut)sender);
-
             CloseWaveOut(false);
-
-            //check what is Stopped;
-            resetSoundButtons();
+            resetSoundButtonsDefault();
 
         }
 
-        private void OnDispose(object sender, EventArgs e)
-        {
-            // do stuff on dispose
-            CloseWaveOut(true);
-        }
 
-        private void resetSoundButtons()
+
+        private void resetSoundButtonsDefault()
         {
             btnPlaySound.Enabled = true;
             btnStopSound.Enabled = false;
@@ -584,6 +766,10 @@ namespace Strangetimez
             btnStopSound.BackgroundImage = (Image)new Bitmap(Properties.Resources.Stop_red_icon_small_Disabled);
 
             btnLoadSound.Enabled = true;
+            btnLoadSound.BackgroundImage = (Image)new Bitmap(Properties.Resources.browse_icon_small);
+
+            btnRecord.Enabled = true;
+            btnRecord.BackgroundImage = (Image)new Bitmap(Properties.Resources.record_small);
 
             setAllControls(this.Enabled);
 
@@ -610,11 +796,8 @@ namespace Strangetimez
             btnStopSound.Enabled = vEnabled;
             cbOutputDevice.Enabled = vEnabled;
             numVolume.Enabled = vEnabled;
-            
-            //if (vEnabled)
-            //{
-            //    btnLoadSound.ForeColor = Color.White;
-            //}
+            btnRecord.Enabled = vEnabled;
+            btnClearSound.Enabled = vEnabled;
 
         }
 
@@ -628,6 +811,7 @@ namespace Strangetimez
             {
 
                 btnPlaySound.Enabled = true;
+                btnRecord.Enabled = true;
 
                 if (String.IsNullOrEmpty(Filename))
                 {
@@ -641,7 +825,6 @@ namespace Strangetimez
                     btnStopSound.Enabled = false;
                     btnPlaySound.Select();
                 }
-
                 
             }
             else
@@ -649,9 +832,11 @@ namespace Strangetimez
                 btnPlaySound.Enabled = false;
                 btnStopSound.Enabled = false;
                 btnLoadSound.Enabled = false;
+                btnRecord.Enabled = false;
+                btnClearSound.Enabled = false;
             }
 
-            setButtonsImages(ref btnPlaySound, ref btnStopSound);
+            setButtonsImages(ref btnPlaySound, ref btnStopSound, ref btnLoadSound, ref btnRecord);
 
         }
 
@@ -661,10 +846,8 @@ namespace Strangetimez
         /// </summary>
         /// <param name="vPlayButton"></param>
         /// <param name="vStopButton"></param>
-        private void setButtonsImages(ref Button vPlayButton, ref Button vStopButton)
+        private void setButtonsImages(ref Button vPlayButton, ref Button vStopButton, ref Button vLoadButton, ref Button vRecordButton)
         {
-            //vStopButton.Enabled = false;
-            //vStopButton.Enabled = (vPath == string.Empty);
             if (vStopButton.Enabled == false || !this.Enabled)
             {
                 vStopButton.BackgroundImage = (Image)new Bitmap(Properties.Resources.Stop_red_icon_small_Disabled);
@@ -684,6 +867,28 @@ namespace Strangetimez
                 vPlayButton.BackgroundImage = (Image)new Bitmap(Properties.Resources.Play_1_Hot_icon_small);
             }
 
+
+
+            if (vLoadButton.Enabled == false || !this.Enabled)
+            {
+                vLoadButton.BackgroundImage = (Image)new Bitmap(Properties.Resources.browse_icon_Disabled);
+            }
+            else
+            {
+                vLoadButton.BackgroundImage = (Image)new Bitmap(Properties.Resources.browse_icon_small);
+            }
+
+
+
+            if (vRecordButton.Enabled == false || !this.Enabled)
+            {
+                vRecordButton.BackgroundImage = (Image)new Bitmap(Properties.Resources.record_small_Disabled);
+            }
+            else
+            {
+                vRecordButton.BackgroundImage = (Image)new Bitmap(Properties.Resources.record_small);
+            }
+
         }
 
 
@@ -694,6 +899,36 @@ namespace Strangetimez
         {
             txtSoundFilename.Text = Filename;
             txtSoundFilename.Enabled = this.Enabled;
+        }
+
+
+        public List<WaveOutCapabilities> PlaybackDeviceList()
+        {
+            List<WaveOutCapabilities> output = new List<WaveOutCapabilities>();
+
+            int waveOutDevices = WaveOut.DeviceCount;
+            for (int waveOutDevice = 0; waveOutDevice < waveOutDevices; waveOutDevice++)
+            {
+                //WaveOutCapabilities deviceInfo = WaveOut.GetCapabilities(waveOutDevice);
+                output.Add(WaveOut.GetCapabilities(waveOutDevice));
+            }
+
+            return output;
+        }
+
+
+        public List<WaveInCapabilities> RecordingDeviceList()
+        {
+            List<WaveInCapabilities> output = new List<WaveInCapabilities>();
+
+            int waveOutDevices = WaveIn.DeviceCount;
+            for (int waveInDevice = 0; waveInDevice < waveOutDevices; waveInDevice++)
+            {
+                //WaveOutCapabilities deviceInfo = WaveOut.GetCapabilities(waveOutDevice);
+                output.Add(WaveIn.GetCapabilities(waveInDevice));
+            }
+
+            return output;
         }
 
 
@@ -884,6 +1119,9 @@ namespace Strangetimez
         {
             int output = 0;
 
+            if (string.IsNullOrEmpty(vPath)) return -1;
+            if (!System.IO.File.Exists(vPath)) return -1;
+
             try
             {
                 string ext = System.IO.Path.GetExtension(vPath).ToUpper().Trim().Replace(".", "");
@@ -918,16 +1156,33 @@ namespace Strangetimez
 
         private void btnStopSound_Click(object sender, EventArgs e)
         {
-            StopSound();
+            Stop();
         }
 
-
-        public void StopSound()
+        /// <summary>
+        /// Will stop playing or recording, depending on what action was previously performed (pressing play, or record)
+        /// </summary>
+        public void Stop()
         {
-            resetSoundButtons();
-            btnStopSound.Enabled = false;
-            btnPlaySound.Enabled = true;
-            CloseWaveOut(false);
+            if (State == SoundControlState.Playing)
+            {                
+                CloseWaveOut(false);
+                State = SoundControlState.None;
+            }
+            else if (State == SoundControlState.Recording) 
+            {
+                //waveSource.StopRecording();
+                stopRecording();
+            }
+            else
+            {
+                // None
+                // no activity happened most likely
+            }
+
+            resetSoundButtonsDefault();
+
+
         }
 
 
@@ -995,6 +1250,8 @@ namespace Strangetimez
             if (!ApplyingSettings)
             {
                 SoundDeviceName = cbOutputDevice.SelectedItem.ToString();
+                // raise event for device change
+                OnDeviceChangeDetect(new DeviceDetectEventArgs(SoundDeviceName));
             } 
             
         }
@@ -1003,6 +1260,12 @@ namespace Strangetimez
         private void numVolume_ValueChanged(object sender, EventArgs e)
         {
             volume = (int)numVolume.Value;
+            if (!ApplyingSettings)
+            {
+                // raise event for volume change
+                OnVolumeChangeDetect(new VolumeDetectEventArgs(Volume));
+            }
+            
         }
 
 
@@ -1028,6 +1291,178 @@ namespace Strangetimez
         {
             if (!tmrDeviceUpdate.Enabled)
                 tmrDeviceUpdate.Start();
+        }
+
+        private void btnRecord_Click(object sender, EventArgs e)
+        {
+            StartRecording();
+        }
+
+        public void StartRecording()
+        {
+            String fileToRecord = System.IO.Path.GetTempPath() + recordingTempFilename; // + ".wav";
+
+            // if the recording filename is not specified
+            if (String.IsNullOrEmpty(this.RecordingFilename))
+            {
+                int filenum = 0;
+                while (System.IO.File.Exists(fileToRecord + filenum + ".wav"))
+                {
+                    filenum++;
+                }
+                fileToRecord = fileToRecord + filenum + ".wav";
+                RecordingFilename = fileToRecord;
+            }           
+
+            // check if the filename has .WAV in it
+            if (!RecordingFilename.ToUpper().Contains(".WAV"))
+            {
+                RecordingFilename += ".wav";
+            }
+
+            State = SoundControlState.Recording;
+            setButtonsOnRecord(ref btnPlaySound, ref btnStopSound, ref btnLoadSound, ref btnRecord);
+
+            waveSource = new WaveIn();
+            waveSource.WaveFormat = new WaveFormat(44100, 1);
+            waveSource.DeviceNumber = RecordingDeviceID;
+            waveSource.DataAvailable += WaveSource_DataAvailable;
+            waveSource.RecordingStopped += WaveSource_RecordingStopped;
+
+            try
+            {
+                //waveFile = new WaveFileWriter(@"C:\Temp\Test0001.wav", waveSource.WaveFormat);
+                waveFile = new WaveFileWriter(RecordingFilename, waveSource.WaveFormat);
+                waveSource.StartRecording();
+                tmrRecording.Start();
+                setRecordingText();
+            }
+            catch (Exception)
+            {
+
+            }
+
+        }
+
+        private void setRecordingText()
+        {
+            string formattedTime = GetTimeFormatted(recordingTimeSeconds);
+            this.Invoke((Action)delegate
+            {
+                this.txtSoundFilename.Text = "Recordning ... " + formattedTime;
+            });
+            
+        }
+
+        public void SetRecordingDevice(int vDeviceID)
+        {
+            recordingDeviceID = vDeviceID;
+            if (waveSource != null) waveSource.DeviceNumber = vDeviceID;
+        }
+
+        private void WaveSource_RecordingStopped(object sender, StoppedEventArgs e)
+        {
+            stopRecording();
+            setToolTips();
+        }
+
+        private void stopRecording()
+        {
+            // only run the event if its recording currently
+            if (State == SoundControlState.None) return;
+
+            tmrRecording.Stop();
+            recordingTimeSeconds = 0;
+            this.txtSoundFilename.Text = Filename;
+                        
+            ResetRecording();
+            State = SoundControlState.None;
+
+            // raise event for device change
+            OnRecordingStoppedDetect(new RecordDetectEventArgs(RecordingFilename));
+        }
+
+
+        private void ResetRecording()
+        {
+            if (waveSource != null)
+            {
+                waveSource.Dispose();
+                waveSource = null;
+            }
+
+            if (waveFile != null)
+            {
+                waveFile.Dispose();
+                waveFile = null;
+            }
+
+            //waveSource = new WaveIn();
+
+            resetSoundButtonsDefault();
+        }
+
+        private void WaveSource_DataAvailable(object sender, WaveInEventArgs e)
+        {
+            if (waveFile != null)
+            {
+                waveFile.Write(e.Buffer, 0, e.BytesRecorded);
+                waveFile.Flush();
+            }
+        }
+
+        private void setButtonsOnRecord(ref Button vPlayButton, ref Button vStopButton, ref Button vBrowseButton, ref Button vRecordButton)
+        {
+            vStopButton.Enabled = true;
+            vStopButton.BackgroundImage = (Image)new Bitmap(Properties.Resources.Stop_red_icon_small);
+
+            vPlayButton.Enabled = false;
+            vPlayButton.BackgroundImage = (Image)new Bitmap(Properties.Resources.Play_1_Hot_icon_small_Disabled);
+
+            vBrowseButton.Enabled = false;
+            vBrowseButton.BackgroundImage = (Image)new Bitmap(Properties.Resources.browse_icon_Disabled);
+
+            vRecordButton.Enabled = false;
+            vRecordButton.BackgroundImage = (Image)new Bitmap(Properties.Resources.record_small_Disabled);
+
+        }
+
+
+
+
+
+
+
+
+
+
+
+        private void OnDispose(object sender, EventArgs e)
+        {
+            Stop(); // stop recording/playback
+
+            if (tmrRecording != null)
+            {
+                tmrRecording.Stop();
+                tmrRecording.Dispose();
+            }
+
+            if (tmrDeviceUpdate != null)
+            {
+                tmrDeviceUpdate.Stop();
+                tmrDeviceUpdate.Dispose();
+            }
+
+            CloseWaveOut(true);
+
+            if (waveFile != null)
+            {
+                waveFile.Close();
+                waveFile.Dispose();
+            }
+
+            if (waveSource != null) waveSource.Dispose();
+                        
         }
 
 

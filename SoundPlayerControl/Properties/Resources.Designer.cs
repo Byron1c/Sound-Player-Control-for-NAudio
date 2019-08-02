@@ -63,6 +63,16 @@ namespace Strangetimez.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap browse_icon_Disabled {
+            get {
+                object obj = ResourceManager.GetObject("browse_icon_Disabled", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap browse_icon_small {
             get {
                 object obj = ResourceManager.GetObject("browse_icon_small", resourceCulture);
@@ -106,6 +116,26 @@ namespace Strangetimez.Properties {
         internal static System.Drawing.Bitmap Play_1_Hot_icon_small_Disabled {
             get {
                 object obj = ResourceManager.GetObject("Play_1_Hot_icon_small_Disabled", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap record_small {
+            get {
+                object obj = ResourceManager.GetObject("record_small", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap record_small_Disabled {
+            get {
+                object obj = ResourceManager.GetObject("record_small_Disabled", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
