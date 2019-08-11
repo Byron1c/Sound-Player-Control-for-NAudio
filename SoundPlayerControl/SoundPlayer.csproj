@@ -86,6 +86,9 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="IconSoundControl.ico" />
+    <Content Include="IconSoundControl.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Notes.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

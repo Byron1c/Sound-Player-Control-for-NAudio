@@ -10,6 +10,11 @@
     <projectUrl>https://github.com/Byron1c/Sound-Player-Control-for-NAudio</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description$</description>
+	<!-- The icon is used in Visual Studio's package manager UI 
+	http://github.com/contoso/UsefulStuff/nuget_icon.png
+	-->
+    <iconUrl>https://github.com/Byron1c/Sound-Player-Control-for-NAudio/blob/master/SoundPlayerControl/IconSoundControl.ico</iconUrl>
+	
     <releaseNotes>
 * Improved tooltips - shows filename and play time
 * Events added for changing the volume, and changing the device
