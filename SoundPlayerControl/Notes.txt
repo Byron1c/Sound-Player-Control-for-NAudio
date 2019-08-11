@@ -42,6 +42,10 @@ private void SoundPlayer_PlaybackStopped(object sender, NAudio.Wave.StoppedEvent
 
 
 Changes
+0.9.0.6
+* Fixed issue with record button not hiding/showing properly
+* Added icon
+
 0.9.0.5
 * Improved tooltips - shows filename and play time
 * Events added for changing the volume, and changing the device

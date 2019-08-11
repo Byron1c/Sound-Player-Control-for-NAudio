@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.btnPlaySound = new System.Windows.Forms.Button();
             this.btnStopSound = new System.Windows.Forms.Button();
             this.cbEnable3 = new System.Windows.Forms.CheckBox();
@@ -90,7 +91,7 @@
             this.soundPlayer3.ShowRecord = true;
             this.soundPlayer3.ShowTitle = true;
             this.soundPlayer3.ShowVolume = false;
-            this.soundPlayer3.Size = new System.Drawing.Size(317, 26);
+            this.soundPlayer3.Size = new System.Drawing.Size(349, 26);
             this.soundPlayer3.SoundDeviceName = "Speakers (Conexant 20585 SmartA";
             this.soundPlayer3.State = Strangetimez.SoundPlayer.SoundControlState.None;
             this.soundPlayer3.TabIndex = 20;
@@ -116,7 +117,7 @@
             this.soundPlayer2.ShowRecord = true;
             this.soundPlayer2.ShowTitle = true;
             this.soundPlayer2.ShowVolume = true;
-            this.soundPlayer2.Size = new System.Drawing.Size(708, 26);
+            this.soundPlayer2.Size = new System.Drawing.Size(740, 26);
             this.soundPlayer2.SoundDeviceName = "Speakers (Conexant 20585 SmartA";
             this.soundPlayer2.State = Strangetimez.SoundPlayer.SoundControlState.None;
             this.soundPlayer2.TabIndex = 19;
@@ -142,7 +143,7 @@
             this.soundPlayer1.ShowRecord = true;
             this.soundPlayer1.ShowTitle = true;
             this.soundPlayer1.ShowVolume = true;
-            this.soundPlayer1.Size = new System.Drawing.Size(708, 26);
+            this.soundPlayer1.Size = new System.Drawing.Size(740, 26);
             this.soundPlayer1.SoundDeviceName = "Speakers (Conexant 20585 SmartA";
             this.soundPlayer1.State = Strangetimez.SoundPlayer.SoundControlState.None;
             this.soundPlayer1.TabIndex = 18;
@@ -215,6 +216,7 @@
             this.Controls.Add(this.cbEnable3);
             this.Controls.Add(this.btnStopSound);
             this.Controls.Add(this.btnPlaySound);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "Form1";
             this.Text = "Form1";
             this.Load += new System.EventHandler(this.Form1_Load);

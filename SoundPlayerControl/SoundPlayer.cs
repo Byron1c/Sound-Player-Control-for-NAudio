@@ -162,7 +162,7 @@ namespace Strangetimez
         private Boolean showRecord;
         public Boolean ShowRecord
         {
-            get { return showTitle; }
+            get { return showRecord; }
             set
             {
                 showRecord = value;
@@ -324,7 +324,7 @@ namespace Strangetimez
         }
 
 
-        public SoundPlayer(String vFilename, int vVolume, Boolean vShowDeviceList = true, Boolean vShowVolume = true, Boolean vShowClearButton = true, Boolean vShowFilename = true, Boolean vShowTitle = true)
+        public SoundPlayer(String vFilename, int vVolume, Boolean vShowDeviceList = true, Boolean vShowVolume = true, Boolean vShowClearButton = true, Boolean vShowFilename = true, Boolean vShowTitle = true, Boolean vShowRecord = true)
         {
             InitializeComponent();
 
@@ -337,6 +337,7 @@ namespace Strangetimez
             ShowClearButton = vShowClearButton;
             ShowFilename = vShowFilename;
             ShowTitle = vShowTitle;
+            ShowRecord = vShowRecord;
 
             SetControlWidth();
         }

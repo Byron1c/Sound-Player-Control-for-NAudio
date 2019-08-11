@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("Sound Player Control for NAudio")]
-[assembly: AssemblyDescription("Sound Player Control for NAudio")]
+[assembly: AssemblyDescription("Sound Player Control for NAudio. Play and record audio with a simple control. Can be used visially or programatically.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Strangetimez")]
 [assembly: AssemblyProduct("SoundPlayerControl")]
@@ -32,5 +32,5 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("0.9.0.5")]
+[assembly: AssemblyVersion("0.9.0.6")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
